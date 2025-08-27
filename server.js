@@ -20,7 +20,7 @@ const { transcribeWithVosk, voskLoader } = require('./stt');
 const { synthesizeWithPiper, loadTtsConfigs } = require('./tts');
 
 const app = express();
-const port = 3000;
+const port = config.port;
 
 app.use(cors());
 
