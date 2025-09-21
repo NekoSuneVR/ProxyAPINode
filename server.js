@@ -319,7 +319,8 @@ app.post('/stt', upload.single('audio'), async (req, res) => {
     try {
         const text = await transcribeWithVosk(filePath);
         await fsnormal.remove(filePath);
-        res.json({ transcript: text || false });
+        console.log(text)
+        res.json({ transcript: text });
     } catch (err) {
         console.error(err);
         res.status(500).send('STT error');
