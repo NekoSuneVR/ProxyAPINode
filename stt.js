@@ -25,37 +25,43 @@ async function voskLoader() {
   return model;
 }
 
-function transcribeWithVosk(filePath) {
+async function transcribeWithVosk(filePath) {
   return new Promise(async (resolve, reject) => {
-    const wfReader = fs.createReadStream(filePath, { highWaterMark: 4096 });
+    try {
+      const wfReader = fs.createReadStream(filePath, { highWaterMark: 4096 });
+      const model = await voskLoader();
 
-    const model = await voskLoader();
+      const rec = new vosk.Recognizer({ model, sampleRate: 16000 });
+      rec.setMaxAlternatives(1);
+      rec.setWords(true);
 
-    const rec = new vosk.Recognizer({ model, sampleRate: 16000 });
-    rec.setMaxAlternatives(1);
-    rec.setWords(true);
+      wfReader.on("data", chunk => rec.acceptWaveform(chunk));
 
-    wfReader.on("data", chunk => {
-      rec.acceptWaveform(chunk);
-    });
-
-    const resultText = await new Promise((resolve, reject) => {
       wfReader.on("end", () => {
-        const finalResult = rec.finalResult();
-        rec.free();
-        resolve(finalResult);
+        try {
+          const finalResult = rec.finalResult();
+          rec.free();
+
+          const text =
+            finalResult?.alternatives?.[0]?.text?.trim() ?? "";
+
+          if (text) {
+            resolve(text);
+          } else {
+            resolve(false); // no text detected
+          }
+        } catch (err) {
+          rec.free();
+          reject(err);
+        }
       });
 
       wfReader.on("error", err => {
         rec.free();
         reject(err);
       });
-    });
-
-    console.log(resultText)
-
-    if (resultText.alternatives && resultText.alternatives[0].text) {
-        resolve(resultText.alternatives[0].text)
+    } catch (err) {
+      reject(err);
     }
   });
 }
